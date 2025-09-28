@@ -11,7 +11,7 @@ headers = {
     "Notion-version" : "2022-06-28"
 }
 
-def create_weekly_task(title, date):
+def create_weekly_task(title, start_date, end_date):
     url = "https://api.notion.com/v1/pages"
     data = {
         "parent": {"database_id": DATABASE_ID},
@@ -20,13 +20,13 @@ def create_weekly_task(title, date):
                 "title": [{"text": {"content": title}}]
             },
             "Date": {
-                "date": {"start": date}
+                "date": {"start": start_date, "end": end_date}
             }
         }
     }
     res = requests.post(url, headers=headers, json=data)
     if res.status_code == 200:
-        print("✅ Task created:", title, date)
+        print("✅ Task created:", title, start_date, end_date)
     else:
         print("❌ Error:", res.text)
 
