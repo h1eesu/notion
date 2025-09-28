@@ -1,5 +1,5 @@
 import requests
-import datetime
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 
@@ -14,74 +14,57 @@ headers = {
     "Notion-version" : "2022-06-28"
 }
 
-def query_current_week():
-    url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
-    today = datetime.date.today()
-    monday = today - datetime.timedelta(days=today.weekday())
-    sunday = monday + datetime.timedelta(days=6)
-    # monday = today - datetime.timedelta(days=today.weekday()) + datetime.timedelta(days=7)
-    # sunday = monday + datetime.timedelta(days=6)
-    print("Query from:", monday, "to:", sunday)
+def parse_date(old_datetime_str, days = 7):
+    if old_datetime_str[-6] in ['+', '-']:
+        old_datetime_str = old_datetime_str[:-6]
+    
+    # Chuyển string thành datetime
+    dt = datetime.fromisoformat(old_datetime_str)
+    
+    # Dời ngày (giữ nguyên giờ)
+    new_dt = dt + timedelta(days=days)
+    
+    # Chuyển ngược về string ISO 8601 để Notion nhận
+    return new_dt.isoformat()
 
-    data = {
-        "filter": {
-            "and": [
-                {
-                    "property": "Date", "date": {"on_or_after": monday.isoformat()}
-                },
-                {
-                    "property": "Date", "date": {"on_or_before": sunday.isoformat()}
-                }
-            ]
-        }
-    }
-    res = requests.post(url, headers=headers, json=data)
+
+def get_tasks():
+    url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
+    res = requests.post(url, headers=headers)
     return res.json()["results"]
 
-def create_task(title, start, end, room, dayofweek):
-    url = "https://api.notion.com/v1/pages"
-    data = {
-        "parent": {"database_id": DATABASE_ID},
+def update_task_date(page_id, old_date_start, old_date_end):
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+
+    new_date_start = parse_date(old_date_start)
+    new_date_end = parse_date(old_date_end)
+    payload = {
         "properties": {
-            "Subject": {"title": [{"text": {"content": title}}]},
             "Date": {
                 "date": {
-                    "start": start, 
-                    "end": end
+                    "start": new_date_start,
+                    "end": new_date_end
                 }
-            },
-            "Day of Week": {
-                "select": {"name": dayofweek}
-            },
-            "Room": {
-                "rich_text": [{"text": {"content": room}}]
             }
         }
     }
-    res = requests.post(url, headers=headers, json=data)
+    res = requests.patch(url, headers=headers, json=payload)
     if res.status_code == 200:
-        print("✅ Created:", title, start)
+        print("✅ Created:", page_id, new_date_start, "to", new_date_end)
     else:
         print("❌ Error:", res.text)
 
 def main():
-    events = query_current_week()
-    for e in events:
-        props = e["properties"]
-        title = props["Subject"]["title"][0]["text"]["content"]
-        start = props["Date"]["date"]["start"]
-        end = props["Date"]["date"]["end"]
-        room = props["Room"]["rich_text"][0]["text"]["content"] if props["Room"]["rich_text"] else ""
-        dayofweek = props["Day of Week"]["select"]["name"]
-
-        start_dt = datetime.datetime.fromisoformat(start.replace("Z","+00:00"))
-        end_dt = datetime.datetime.fromisoformat(end.replace("Z","+00:00")) if end else None
-
-        # cộng thêm 7 ngày
-        new_start = (start_dt + datetime.timedelta(days=7)).isoformat()
-        new_end = (end_dt + datetime.timedelta(days=7)).isoformat() if end_dt else None
-
-        create_task(title, new_start, new_end, room, dayofweek)
+    today = datetime.now().date()
+    if today.weekday() != 0:  # 0 là thứ Hai
+        print("Hôm nay không phải thứ Hai. Chương trình sẽ dừng lại.")
+        return
+    tasks = get_tasks()
+    for task in tasks:
+        page_id = task["id"]
+        old_date_start = task["properties"]["Date"]["date"].get("start")
+        old_date_end = task["properties"]["Date"]["date"].get("end")
+        update_task_date(page_id, old_date_start, old_date_end)
 
 if __name__ == "__main__":
     main()
