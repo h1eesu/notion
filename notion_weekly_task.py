@@ -56,7 +56,7 @@ def update_task_date(page_id, old_date_start, old_date_end):
 
 def main():
     today = datetime.now().date()
-    if today.weekday() != 0:  # 0 là thứ Hai
+    if today.weekday() != 7:
         print("Hôm nay không phải thứ Hai. Chương trình sẽ dừng lại.")
         return
     tasks = get_tasks()
