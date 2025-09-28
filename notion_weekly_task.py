@@ -23,10 +23,7 @@ def create_weekly_task(title, start_date, end_date):
                 "title": [{"text": {"content": title}}]
             },
             "Start Date": {
-                "date": {"start": start_date}
-            },
-            "End Date": {
-                "date": {"start": end_date}
+                "date": {"start": start_date, "end": end_date}
             }
         }
     }
