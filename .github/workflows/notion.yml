@@ -1,0 +1,22 @@
+name: Notion Weekly Task
+on:
+  schedule:
+    - cron: "0 0 * * 0" # (0m 0h day of month month day of week) every Sunday at midnight
+  workflow_dispatch: # thêm nút run trong github action
+
+jobs: # 1 workflow có thể có nhiều job
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3 # checkout code từ repo
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run script
+        run: python notion_weekly_task.py
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          DATABASE_ID: ${{ secrets.DATABASE_ID }}
