@@ -1,12 +1,15 @@
 import requests
 import datetime
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+DATABASE_ID = os.getenv("DATABASE_ID")
 
 headers = {
-    "Authorization" : f"Bearver {NOTION_API_KEY}",
+    "Authorization" : f"Bearer {NOTION_API_KEY}",
     "Content-Type" : "application/json",
     "Notion-version" : "2022-06-28"
 }
@@ -19,8 +22,11 @@ def create_weekly_task(title, start_date, end_date):
             "Subject": {
                 "title": [{"text": {"content": title}}]
             },
-            "Date": {
-                "date": {"start": start_date, "end": end_date}
+            "Start Date": {
+                "date": {"start": start_date}
+            },
+            "End Date": {
+                "date": {"start": end_date}
             }
         }
     }
@@ -33,4 +39,4 @@ def create_weekly_task(title, start_date, end_date):
 if __name__ == "__main__":
     today = datetime.date.today()
     next_week = today + datetime.timedelta(days=7)
-    create_weekly_task("Weekly Task Auto", str(next_week))
+    create_weekly_task("Weekly Task Auto", str(next_week), str(next_week))
